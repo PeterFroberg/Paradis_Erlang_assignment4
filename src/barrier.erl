@@ -26,7 +26,7 @@ loop(Expected, PidRefs, Refs) ->
     {arrive, {Pid, Ref}} ->
       case lists:member(Ref, Expected) of
         true ->
-          loop(Expected, lists:sort([{Pid, Ref}|PidRefs]), lists:sort([Ref|Refs]));
+          loop(Expected, [{Pid, Ref}|PidRefs], lists:sort([Ref|Refs]));
         false ->
           Pid ! {continue, Ref},
           loop(Expected, PidRefs, Refs)
@@ -60,7 +60,9 @@ test() ->
   Barrier = barrier:start([A, B]),
   spawn(fun () -> do_a(), barrier:wait(Barrier, A), do_more(a) end),
   spawn(fun () -> do_b(), barrier:wait(Barrier, B), do_more(b) end),
-  spawn(fun () -> do_c(), barrier:wait(Barrier, C), do_more(c) end).
+  spawn(fun () -> do_c(), barrier:wait(Barrier, C), do_more(c) end),
+  io:format("all spawned and ready to rock \n").
+
 
 %%
 %%  Barrier = barrier:start(4),
