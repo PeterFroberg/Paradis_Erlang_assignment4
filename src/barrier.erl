@@ -14,22 +14,22 @@
 
 start(Expected) ->
   ExpectedSorted = lists:sort(Expected),
-  spawn_link(fun () -> loop(ExpectedSorted, []) end).
+  spawn_link(fun () -> loop(ExpectedSorted, [], []) end).
 
-loop(Expected, PidRefs) when PidRefs =:= Expected ->
+loop(Expected, PidRefs, Refs) when Refs =:= Expected ->
 
   [Pid ! {continue, Ref} || {Pid, Ref} <- PidRefs],
-  loop(Expected, []);
+  loop(Expected, [], []);
 
-loop(Expected, PidRefs) ->
+loop(Expected, PidRefs, Refs) ->
   receive
     {arrive, {Pid, Ref}} ->
       case lists:member(Ref, Expected) of
         true ->
-          loop(Expected, lists:sort([{Pid, Ref}|PidRefs]));
+          loop(Expected, lists:sort([{Pid, Ref}|PidRefs]), lists:sort([Ref|Refs]));
         false ->
           Pid ! {continue, Ref},
-          loop(Expected, PidRefs)
+          loop(Expected, PidRefs, Refs)
       end
       %%loop(Expected, [{Pid, Ref}|PidRefs])
   end.
@@ -43,7 +43,8 @@ wait(Barrier, Ref) ->
   end.
 
 do_a() ->
-  io:format("DO A \n").
+  io:format("DO A \n"),
+  timer:sleep(5000).
 
 do_b() ->
   io:format("DO B \n").
