@@ -31,7 +31,6 @@ loop(Expected, PidRefs, Refs) ->
           Pid ! {continue, Ref},
           loop(Expected, PidRefs, Refs)
       end
-      %%loop(Expected, [{Pid, Ref}|PidRefs])
   end.
 
 wait(Barrier, Ref) ->
@@ -62,25 +61,3 @@ test() ->
   spawn(fun () -> do_b(), barrier:wait(Barrier, B), do_more(b) end),
   spawn(fun () -> do_c(), barrier:wait(Barrier, C), do_more(c) end),
   io:format("all spawned and ready to rock \n").
-
-
-%%
-%%  Barrier = barrier:start(4),
-%%  lists:foreach(fun (I) ->
-%%    spawn(fun () ->
-%%      io:format("Process ~p started..~n", [I]),
-%%      receive
-%%      after I * 1000 -> ok
-%%      end,
-%%      io:format("Process ~p waiting..~n", [I]),
-%%      barrier:wait(Barrier),
-%%      io:format("Process ~p resumed..~n", [I])
-%%          end)
-%%                end, lists:seq(1, 4)).
-%%
-%%
-%%A = make_ref(), B = make_ref(), C = make_ref(),
-%%Barrier = barrier:start([A, B]),
-%%spawn(fun () -> do_a(), barrier:wait(Barrier, A), do_more(a) end),
-%%spawn(fun () -> do_b(), barrier:wait(Barrier, B), do_more(b) end),
-%%spawn(fun () -> do_c(), barrier:wait(Barrier, C), do_more(c) end).
