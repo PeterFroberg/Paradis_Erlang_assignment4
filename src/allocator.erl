@@ -39,6 +39,7 @@ takeResources(AvailableResources, []) ->
 takeResources(AvailableResources, [H|T]) ->
   case maps:is_key(H, AvailableResources) of
     true ->
+
       takeResources(maps:remove(H,AvailableResources), T);
     false ->
       timer:sleep(5000),
@@ -65,10 +66,10 @@ allocator(Resources) ->
   end.
 
 test2() ->
-  Allocator = allocator:start([a,b,c,d]),
-  spawn(?MODULE, allocate_test, [Allocator, "Process A", 2]),
-  spawn(?MODULE, allocate_test, [Allocator, "Process B", 2]),
-  spawn(?MODULE, allocate_test, [Allocator, "Process C", 4]).
+  Allocator = allocator:start(#{a=>10, b=>20, c=>30}),
+  spawn(?MODULE, allocate_test, [Allocator, "Process A", [a,b]]).
+%%  spawn(?MODULE, allocate_test, [Allocator, "Process B", 2]),
+%%  spawn(?MODULE, allocate_test, [Allocator, "Process C", 4]).
 
 allocate_test(Allocator, Name, N) ->
   io:format("~p requests ~p resources ~n", [Name, N]),
