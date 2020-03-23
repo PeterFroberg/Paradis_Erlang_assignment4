@@ -1,5 +1,7 @@
 -module(mapreduce).
--compile(export_all).
+%%-compile().
+
+-export([test/0, mapreduce_seq/3, spawnsender/3]).
 
 test() ->
   Mapper = fun(_Key, Text) ->
