@@ -78,6 +78,7 @@ sendStartToReduce({I, Pid}) ->
 
 mapreduce(Mapper, Mappers, Reducer, Reducers, Input) ->
   Self = self(),
+  global:register_name(server, Self),
   io:format("I'm the master of the universe: ~p \n", [Self]),
   Ref = make_ref(),
   io:format("Master REf: ~p\n", [Ref]),
@@ -195,7 +196,7 @@ reducing(Master, Ref, Reducer, Chunks) ->
       io:format("Send to Master from: ~p Reduce: ~p\n", [self(), Reduce]),
       Master ! {reduce, self(), Ref, Reduce};
     Chunk ->
-      reducing(Master, Ref, Reducer, Chunk ++ Chunks)
+      server:reducing(Master, Ref, Reducer, Chunk ++ Chunks)
   end.
 
 spawn_reducer(Master, Ref, Reducer, F) ->
@@ -232,16 +233,17 @@ spawn_reducerNodes(Node, Master, Ref, Reducer) ->
           io:format("Send to Master from: ~p Reduce: ~p\n", [self(), Reduce]),
           Master ! {reduce, self(), Ref, Reduce};
         Chunk ->
-          reducing(Master, Ref, Reducer, Chunk ++ Chunks)
+          server:reducing(Master, Ref, Reducer, Chunk ++ Chunks)
       end
     end,
 
   spawn_link(Node, fun() ->
+
     %% Group the values for each key and apply
     %% The reducer to each K, value list pair
     io:format("ReducerSpawned PID: ~p \n", [self()]),
     io:format("Start reducing ~p\n", [self()]),
-    reducing(Master, Ref, Reducer, [])
+    server:reducing(Master, Ref, Reducer, [])
 
              end).
 
