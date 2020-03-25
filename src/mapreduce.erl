@@ -1,7 +1,7 @@
 -module(mapreduce).
 %%-compile().
 
--export([test/0, spawnsender/3, test_distributed/0]).
+-export([test/0, spawnsender/3, test_distributed/0, mapreduce/5]).
 
 test() ->
   Nodes = [first@Baltazar],
@@ -11,7 +11,7 @@ test() ->
   Reducer = fun(Word, Counts) ->
     [{Word, lists:sum(Counts)}]
             end,
-  mapreduce(Nodes, Mapper, 2, Reducer, 10, [{a, ["hello", "world", "a", "hello", "text"]}, {b, ["world", "a", "a", "b", "text"]}]).
+  mapreduce(node(), Mapper, 2, Reducer, 10, [{a, ["hello", "world", "a", "hello", "text"]}, {b, ["world", "a", "a", "b", "text"]}]).
 
 test_distributed() ->
   Mapper = fun(_Key, Text) ->
@@ -20,7 +20,20 @@ test_distributed() ->
   Reducer = fun(Word, Counts) ->
     [{Word, lists:sum(Counts)}]
             end,
+  {ok, LocalNodes} = net_adm:names(localhost),
+
+  connectLocalNodes(LocalNodes),
   mapreduce(nodes(), Mapper, 2, Reducer, 10, [{a, ["hello", "world", "a", "hello", "text"]}, {b, ["world", "a", "a", "b", "text"]}]).
+
+connectLocalNodes([]) ->
+  [];
+
+connectLocalNodes(LocalNodes) ->
+  io:format("local nodes: ~p \n",[LocalNodes]),
+  [{namn, num}|T] = LocalNodes,
+  net_kernel:connect_node(namn ++ net_adm:localhost()),
+  connectLocalNodes(T).
+
 
 
 %% INPUT:  [{K1, V1}, {K1, V2}, {K2, V3}]
