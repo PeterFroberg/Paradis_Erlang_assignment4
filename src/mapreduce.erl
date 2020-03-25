@@ -1,7 +1,7 @@
 -module(mapreduce).
 %%-compile().
 
--export([test/0, mapreduce_seq/3, spawnsender/3, testwithNodes/0]).
+-export([test/0, spawnsender/3, test_distributed/0]).
 
 test() ->
   Nodes = [first@Baltazar],
@@ -13,25 +13,15 @@ test() ->
             end,
   mapreduce(Nodes, Mapper, 2, Reducer, 10, [{a, ["hello", "world", "a", "hello", "text"]}, {b, ["world", "a", "a", "b", "text"]}]).
 
-testwithNodes() ->
-  HostName = inet:gethostname(),
-  Nodes = [second@Baltazar, third@Baltazar],
-  io:format("Starting Nodes: ~p\n", [Nodes]),
+test_distributed() ->
   Mapper = fun(_Key, Text) ->
     [{Word, 1} || Word <- Text]
            end,
   Reducer = fun(Word, Counts) ->
     [{Word, lists:sum(Counts)}]
             end,
-  mapreduce(Nodes, Mapper, 2, Reducer, 10, [{a, ["hello", "world", "a", "hello", "text"]}, {b, ["world", "a", "a", "b", "text"]}]).
+  mapreduce(nodes(), Mapper, 2, Reducer, 10, [{a, ["hello", "world", "a", "hello", "text"]}, {b, ["world", "a", "a", "b", "text"]}]).
 
-
-mapreduce_seq(Mapper, Reducer, Input) ->
-  Mapped = [{K2, V2} || {K, V} <- Input, {K2, V2} <- Mapper(K, V)],
-  reduce_seq(Reducer, Mapped).
-
-reduce_seq(Reduce, KVs) ->
-  [KV || {K, Vs} <- groupkeys(lists:sort(KVs)), KV <- Reduce(K, Vs)].
 
 %% INPUT:  [{K1, V1}, {K1, V2}, {K2, V3}]
 %% OUTPUT: [{K1, [V1, V2]}, {K2, [V3]}]
