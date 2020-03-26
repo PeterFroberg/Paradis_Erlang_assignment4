@@ -78,7 +78,6 @@ mapreduce(Nodes, Mapper, Mappers, Reducer, Reducers, Input) ->
   io:format("Master REf: ~p\n", [Ref]),
   Partitions = partition(Mappers, Input),
   io:format("Partisions: ~p slut egen \n", [Partitions]),
-  %%ReducerPidsList = spawn_reducers(Nodes, Self, Ref, Reducer, Reducers, 1),
   ReducerPidsList = [{I, spawn_reducerNodes(lists:nth(I rem length(Nodes) + 1 , Nodes), Self, Ref, Reducer)} || I <- lists:seq(1, Reducers)],
   ReducerPids = maps:from_list(ReducerPidsList),
   io:format("ReducerPids: ~p \n", [ReducerPids]),
@@ -86,7 +85,6 @@ mapreduce(Nodes, Mapper, Mappers, Reducer, Reducers, Input) ->
   io:format("MapperPids: ~p \n",[MapperPids]),
   [lists:nth(I rem length(MapperPids) +1,MapperPids ) ! lists:nth(I , Partitions) || I <- lists:seq(1, length(Partitions))],
 
-  %%MapperPids = [spawn_mapper(Self, Ref, Mapper, Reducers, Part, ReducerPids) || Part <- Partitions],
   io:format("Waiting for Mappers"),
   [receive
      {ready, {Pid, Ref}} ->
@@ -98,8 +96,6 @@ mapreduce(Nodes, Mapper, Mappers, Reducer, Reducers, Input) ->
 
   io:format("Waiting for output \n"),
   Output = [receive
-%%              X ->
-%%                io:format("Recived output ~p\n",[X]), notok;
               {reduce, Pid, Ref, Data} ->
                 io:format("Recived output ~p\n", [Data]),
                 Data
@@ -151,7 +147,6 @@ reducing(Master, Ref, Reducer, Chunks) ->
       io:format("Send to Master from: ~p Reduce: ~p\n", [self(), Reduce]),
       Master ! {reduce, self(), Ref, Reduce};
     Chunk ->
-      %%io:format("Got chunk!\n"),
       reducing(Master, Ref, Reducer, Chunk ++ Chunks)
   end.
 
