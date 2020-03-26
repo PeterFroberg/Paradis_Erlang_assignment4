@@ -1,40 +1,28 @@
 -module(mapreduce).
 %%-compile().
 
--export([test/0, spawnsender/3, test_distributed/0, mapreduce/5]).
+-export([test/0, spawnsender/3, test_distributed/0]).
 
 test() ->
-  %%Nodes = [first@Baltazar],
+  Nodes = [first@Baltazar],
   Mapper = fun(_Key, Text) ->
     [{Word, 1} || Word <- Text]
            end,
   Reducer = fun(Word, Counts) ->
     [{Word, lists:sum(Counts)}]
             end,
-  mapreduce(node(), Mapper, 2, Reducer, 10, [{a, ["hello", "world", "a", "hello", "text"]}, {b, ["world", "a", "a", "b", "text"]}]).
+  mapreduce(Nodes, Mapper, 2, Reducer, 10, [{a, ["hello", "world", "a", "hello", "text"]}, {b, ["world", "a", "a", "b", "text"]}]).
 
 test_distributed() ->
+  Nodes = [second@Baltazar, third@Baltazar],
   Mapper = fun(_Key, Text) ->
     [{Word, 1} || Word <- Text]
            end,
   Reducer = fun(Word, Counts) ->
     [{Word, lists:sum(Counts)}]
             end,
-  {ok, LocalNodes} = net_adm:names(localhost),
-  Nodes = [second@Baltazar, third@Baltazar],
   [net_kernel:connect_node(Node) || Node <- Nodes],
-  %%connectLocalNodes(LocalNodes),
   mapreduce(nodes(), Mapper, 2, Reducer, 10, [{a, ["hello", "world", "a", "hello", "text"]}, {b, ["world", "a", "a", "b", "text"]}]).
-
-connectLocalNodes([]) ->
-  [];
-
-connectLocalNodes(LocalNodes) ->
-  io:format("local nodes: ~p \n",[LocalNodes]),
-  [{namn, num}|T] = LocalNodes,
-  net_kernel:connect_node(namn ++ net_adm:localhost()),
-  connectLocalNodes(T).
-
 
 
 %% INPUT:  [{K1, V1}, {K1, V2}, {K2, V3}]
@@ -81,39 +69,7 @@ sendStartToReduce({_I, Pid}) ->
   io:format("send start to Pid: ~p\n", [Pid]),
   Pid ! startreducing.
 
-mapreduce(Mapper, Mappers, Reducer, Reducers, Input) ->
-  Self = self(),
-  io:format("I'm the master of the universe: ~p \n", [Self]),
-  Ref = make_ref(),
-  io:format("Master REf: ~p\n", [Ref]),
-  Partitions = partition(Mappers, Input),
-  io:format("Partisions: ~p slut egen \n", [Partitions]),
-  ReducerPidsList = [{I, spawn_reducer(Self, Ref, Reducer)} || I <- lists:seq(1, Reducers)], %%lists: nth   lists:nth(Nodes, I rem length (Nodes)
-  ReducerPids = maps:from_list(ReducerPidsList),
-  io:format("ReducerPid: ~p \n", [ReducerPids]),
 
-  MapperPids = [spawn_mapper(Self, Ref, Mapper, Reducers, Part, ReducerPids) || Part <- Partitions],
-  io:format("Waiting for Mappers"),
-  [receive
-     {ready, {Pid, Ref}} ->
-       {ready, Pid}
-   end || Pid <- MapperPids],
-
-  io:format("Start to send start to ~p\n", [ReducerPidsList]),
-  [sendStartToReduce(ReducerPid) || ReducerPid <- ReducerPidsList],
-
-  %% Bring all data from the mappers togheter such that all keyvalue
-  %% pairs with the same id is assigned to the same reducer
-  io:format("Waiting for output \n"),
-  Output = [receive
-              {reduce, Pid, Ref, Data} ->
-                io:format("Recived output ~p\n", [Data]),
-                Data
-            end || {_I, Pid} <- ReducerPidsList],
-
-  %% Flatten the output from the reducers
-  %% sort becouse it looks nice :-)
-  lists:sort(lists:flatten(Output)).
 
 mapreduce(Nodes, Mapper, Mappers, Reducer, Reducers, Input) ->
   Self = self(),
@@ -198,18 +154,6 @@ reducing(Master, Ref, Reducer, Chunks) ->
       %%io:format("Got chunk!\n"),
       reducing(Master, Ref, Reducer, Chunk ++ Chunks)
   end.
-
-spawn_reducer(Master, Ref, Reducer) ->  %%tar emot node
-
-  spawn_link(fun() ->
-    %% Group the values for each key and apply
-    %% The reducer to each K, value list pair
-    io:format("ReducerSpawned PID: ~p \n", [self()]),
-    io:format("Start reducing ~p\n", [self()]),
-    %%io:format("Data to reducing ~p ~p ~p \n",[Master,Ref, Reducer]),
-    reducing(Master, Ref, Reducer, [])
-
-             end).
 
 spawn_reducerNodes(Node, Master, Ref, Reducer) ->
 
