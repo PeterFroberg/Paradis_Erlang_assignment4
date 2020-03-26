@@ -4,7 +4,7 @@
 -export([test/0, spawnsender/3, test_distributed/0, mapreduce/5]).
 
 test() ->
-  Nodes = [first@Baltazar],
+  %%Nodes = [first@Baltazar],
   Mapper = fun(_Key, Text) ->
     [{Word, 1} || Word <- Text]
            end,
@@ -21,8 +21,9 @@ test_distributed() ->
     [{Word, lists:sum(Counts)}]
             end,
   {ok, LocalNodes} = net_adm:names(localhost),
-
-  connectLocalNodes(LocalNodes),
+  Nodes = [second@Baltazar, third@Baltazar],
+  [net_kernel:connect_node(Node) || Node <- Nodes],
+  %%connectLocalNodes(LocalNodes),
   mapreduce(nodes(), Mapper, 2, Reducer, 10, [{a, ["hello", "world", "a", "hello", "text"]}, {b, ["world", "a", "a", "b", "text"]}]).
 
 connectLocalNodes([]) ->
@@ -76,7 +77,7 @@ chunk(Data, Chunks, I) ->
     MapKey =:= I,
     Value <- MapValue] | chunk(Data, Chunks, I + 1)].
 
-sendStartToReduce({I, Pid}) ->
+sendStartToReduce({_I, Pid}) ->
   io:format("send start to Pid: ~p\n", [Pid]),
   Pid ! startreducing.
 
@@ -108,7 +109,7 @@ mapreduce(Mapper, Mappers, Reducer, Reducers, Input) ->
               {reduce, Pid, Ref, Data} ->
                 io:format("Recived output ~p\n", [Data]),
                 Data
-            end || {I, Pid} <- ReducerPidsList],
+            end || {_I, Pid} <- ReducerPidsList],
 
   %% Flatten the output from the reducers
   %% sort becouse it looks nice :-)
@@ -146,7 +147,7 @@ mapreduce(Nodes, Mapper, Mappers, Reducer, Reducers, Input) ->
               {reduce, Pid, Ref, Data} ->
                 io:format("Recived output ~p\n", [Data]),
                 Data
-            end || {I, Pid} <- ReducerPidsList],
+            end || {_I, Pid} <- ReducerPidsList],
 
   %% Flatten the output from the reducers
   %% sort becouse it looks nice :-)
